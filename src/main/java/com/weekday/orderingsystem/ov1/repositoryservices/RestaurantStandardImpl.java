@@ -10,45 +10,23 @@ import com.weekday.orderingsystem.ov1.Constants.RestaurantConstants;
 
 public class RestaurantStandardImpl implements Restaurant {
 
-    PriorityQueue<CookingSlot> cookingSlots;
     int maxSlots;
+    int restaurantTimeOffest;
+    int remainingSlots;
+    char currentbiggestMeal;
 
     public RestaurantStandardImpl(int maxSlots) {
-        cookingSlots = new PriorityQueue<>(
-                (x, y) -> Integer.compare(x.getOrderCompletionTime(), y.getOrderCompletionTime()));
         this.maxSlots = maxSlots;
-    }
-
-    private PriorityQueue<CookingSlot> calculateUpdatedCookingSlotState(Order order) {
-        PriorityQueue<CookingSlot> cookingSlotsTemp = new PriorityQueue<>(cookingSlots);
-
-        for (Character c : order.getMeals()) {
-            int slotRequired = RestaurantConstants.MEAL_SLOT_REQUIRED.get(c);
-            int timeRequired = RestaurantConstants.MEAL_TIME_REQUIRED.get(c);
-            int remainingSlots = this.maxSlots - cookingSlotsTemp.size() ;
-            CookingSlot lastClearedSlot = null;
-
-            for (int i = 1; i <= (slotRequired - remainingSlots) && !cookingSlotsTemp.isEmpty(); i++) {
-                lastClearedSlot = cookingSlotsTemp.remove();
-            }
-            if (lastClearedSlot != null) {
-                timeRequired += lastClearedSlot.getOrderCompletionTime();
-            }
-            CookingSlot newMeal = new CookingSlot(order.getOrderId(), timeRequired, c);
-            cookingSlotsTemp.add(newMeal);
-        }
-        return cookingSlotsTemp;
+        this.restaurantTimeOffest=0;
+        this.remainingSlots=maxSlots;
+        this.currentbiggestMeal=' ';
     }
 
     @Override
     public double calculatePreprationTime(Order order) {
-        PriorityQueue<CookingSlot> updatedCookingState = calculateUpdatedCookingSlotState(order);
         int maxTimeForOrder = 0;
-        while (!updatedCookingState.isEmpty()) {
-            CookingSlot cookingSlot = updatedCookingState.remove();
-            if (cookingSlot.getOrderId() == order.getOrderId()) {
-                maxTimeForOrder = Math.max(maxTimeForOrder, cookingSlot.getOrderCompletionTime());
-            }
+        for (Character c : order.getMeals()) {
+            maxTimeForOrder = Math.max(maxTimeForOrder, RestaurantConstants.MEAL_TIME_REQUIRED.get(c));
         }
         return maxTimeForOrder;
     }
@@ -72,16 +50,31 @@ public class RestaurantStandardImpl implements Restaurant {
         return slotRequired<=this.maxSlots;
     }
 
+    private int slotsRequired(Order order){
+        int slotRequired = 0;
+        for (Character c : order.getMeals()) {
+            slotRequired += RestaurantConstants.MEAL_SLOT_REQUIRED.get(c);
+        }
+        return slotRequired;
+    }
+
     @Override
     public double takeOrder(Order order) {
 
-        if(! canAccomodateOrder(order)){
+        if(!canAccomodateOrder(order)){
             return -1;
+        }
+        
+        if(slotsRequired(order)<=this.remainingSlots){
+
+        } else {
+            this.restaurantTimeOffest = RestaurantConstants.MEAL_TIME_REQUIRED.get(this.currentbiggestMeal);
+            this.remainingSlots = this.maxSlots;
+            this.currentbiggestMeal = ' ';
         }
 
         double timeToCustomer = calculateFulfillmentTime(order);
         if ( timeToCustomer <= DeliveryConstants.DELIVERY_LIMIT) {
-            this.cookingSlots = calculateUpdatedCookingSlotState(order);
             return timeToCustomer;
         } else {
             return -1;
