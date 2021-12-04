@@ -1,6 +1,6 @@
 package com.weekday.orderingsystem.ov1.Constants;
  
-final class DeliveryConstants {
+final public class DeliveryConstants {
     
     private DeliveryConstants(){
         // Feature TODO: Change logic for constant updation later, ex: updating delivery constant times from database 

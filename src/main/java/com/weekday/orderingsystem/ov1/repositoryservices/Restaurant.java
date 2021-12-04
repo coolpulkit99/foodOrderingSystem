@@ -6,7 +6,8 @@ import com.weekday.orderingsystem.ov1.dto.Order;
 
 public interface Restaurant {
 
-    public double calculatePreprationTime(Order order);
-    public double calculateDeliveryTime();
-    
+    double calculatePreprationTime(Order order);
+    double calculateDeliveryTime(Order order);
+    double calculateFulfillmentTime(Order order);
+    double takeOrder(Order order);
 }
