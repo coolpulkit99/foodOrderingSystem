@@ -19,5 +19,5 @@ import lombok.NoArgsConstructor;
 public class Order {
     int orderId;
     List<Character> meals;
-    int distance;
+    double distance;
 }

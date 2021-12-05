@@ -14,12 +14,16 @@ public class RestaurantStandardImpl implements Restaurant {
     int restaurantTimeOffest;
     int remainingSlots;
     char currentbiggestMeal;
+    PriorityQueue<CookingSlot> existingOrders;
 
     public RestaurantStandardImpl(int maxSlots) {
         this.maxSlots = maxSlots;
-        this.restaurantTimeOffest=0;
-        this.remainingSlots=maxSlots;
-        this.currentbiggestMeal=' ';
+        this.restaurantTimeOffest = 0;
+        this.remainingSlots = maxSlots;
+        this.currentbiggestMeal = ' ';
+        this.existingOrders = new PriorityQueue<>(
+            (x, y) -> Integer.compare(x.getOrderCompletionTime(), y.getOrderCompletionTime()));
+   
     }
 
     @Override
@@ -42,15 +46,8 @@ public class RestaurantStandardImpl implements Restaurant {
 
     }
 
-    private boolean canAccomodateOrder(Order order){
-        int slotRequired = 0;
-        for (Character c : order.getMeals()) {
-            slotRequired += RestaurantConstants.MEAL_SLOT_REQUIRED.get(c);
-        }
-        return slotRequired<=this.maxSlots;
-    }
 
-    private int slotsRequired(Order order){
+    private int slotsRequired(Order order) {
         int slotRequired = 0;
         for (Character c : order.getMeals()) {
             slotRequired += RestaurantConstants.MEAL_SLOT_REQUIRED.get(c);
@@ -60,12 +57,20 @@ public class RestaurantStandardImpl implements Restaurant {
 
     @Override
     public double takeOrder(Order order) {
+        int slotsRequired = slotsRequired(order);
 
-        if(!canAccomodateOrder(order)){
+        if (slotsRequired > this.maxSlots) {
             return -1;
         }
-        
-        if(slotsRequired(order)<=this.remainingSlots){
+
+        if (slotsRequired(order) <= this.remainingSlots) {
+            for (Character c : order.getMeals()) {
+                this.remainingSlots -= RestaurantConstants.MEAL_SLOT_REQUIRED.get(c);
+                if (RestaurantConstants.MEAL_TIME_REQUIRED
+                        .getOrDefault(this.currentbiggestMeal,0) < RestaurantConstants.MEAL_TIME_REQUIRED.get(c)) {
+                    this.currentbiggestMeal = c;
+                }
+            }
 
         } else {
             this.restaurantTimeOffest = RestaurantConstants.MEAL_TIME_REQUIRED.get(this.currentbiggestMeal);
@@ -73,8 +78,8 @@ public class RestaurantStandardImpl implements Restaurant {
             this.currentbiggestMeal = ' ';
         }
 
-        double timeToCustomer = calculateFulfillmentTime(order);
-        if ( timeToCustomer <= DeliveryConstants.DELIVERY_LIMIT) {
+        double timeToCustomer = this.restaurantTimeOffest + calculateFulfillmentTime(order);
+        if (timeToCustomer <= DeliveryConstants.DELIVERY_LIMIT) {
             return timeToCustomer;
         } else {
             return -1;
