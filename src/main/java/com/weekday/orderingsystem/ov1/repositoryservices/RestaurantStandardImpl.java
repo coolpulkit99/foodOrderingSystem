@@ -11,7 +11,7 @@ import com.weekday.orderingsystem.ov1.Constants.RestaurantConstants;
 public class RestaurantStandardImpl implements Restaurant {
 
     int maxSlots;
-    int restaurantTimeOffest;
+    double restaurantTimeOffest;
     int remainingSlots;
     char currentbiggestMeal;
     PriorityQueue<CookingSlot> existingOrders;
@@ -22,7 +22,7 @@ public class RestaurantStandardImpl implements Restaurant {
         this.remainingSlots = maxSlots;
         this.currentbiggestMeal = ' ';
         this.existingOrders = new PriorityQueue<>(
-            (x, y) -> Integer.compare(x.getOrderCompletionTime(), y.getOrderCompletionTime()));
+            (x, y) -> Double.compare(x.getOrderCompletionTime(), y.getOrderCompletionTime()));
    
     }
 
@@ -63,22 +63,33 @@ public class RestaurantStandardImpl implements Restaurant {
             return -1;
         }
 
-        if (slotsRequired(order) <= this.remainingSlots) {
-            for (Character c : order.getMeals()) {
-                this.remainingSlots -= RestaurantConstants.MEAL_SLOT_REQUIRED.get(c);
-                if (RestaurantConstants.MEAL_TIME_REQUIRED
-                        .getOrDefault(this.currentbiggestMeal,0) < RestaurantConstants.MEAL_TIME_REQUIRED.get(c)) {
-                    this.currentbiggestMeal = c;
-                }
-            }
+        if (slotsRequired <= this.remainingSlots) {
+            
+            // for (Character c : order.getMeals()) {
+            //     this.remainingSlots -= RestaurantConstants.MEAL_SLOT_REQUIRED.get(c);
+                
+            //     if (RestaurantConstants.MEAL_TIME_REQUIRED
+            //             .getOrDefault(this.currentbiggestMeal,0) < RestaurantConstants.MEAL_TIME_REQUIRED.get(c)) {
+            //         this.currentbiggestMeal = c;
+            //     }
+            // }
 
         } else {
-            this.restaurantTimeOffest = RestaurantConstants.MEAL_TIME_REQUIRED.get(this.currentbiggestMeal);
-            this.remainingSlots = this.maxSlots;
-            this.currentbiggestMeal = ' ';
-        }
+            while(this.remainingSlots<slotsRequired){
+                CookingSlot lastFastestOrder = existingOrders.remove();
+                remainingSlots+= lastFastestOrder.getSlotsUsed();
+                this.restaurantTimeOffest = lastFastestOrder.getOrderCompletionTime();
+            }
 
-        double timeToCustomer = this.restaurantTimeOffest + calculateFulfillmentTime(order);
+            // this.restaurantTimeOffest = RestaurantConstants.MEAL_TIME_REQUIRED.get(this.currentbiggestMeal);
+            // this.remainingSlots = this.maxSlots;
+            // this.currentbiggestMeal = ' ';
+        }
+        double timeToCustomer = calculateFulfillmentTime(order) + this.restaurantTimeOffest;
+        CookingSlot currentOrder=new CookingSlot(order.getOrderId(),timeToCustomer,slotsRequired);
+        this.existingOrders.add(currentOrder);
+        this.remainingSlots -= slotsRequired;
+
         if (timeToCustomer <= DeliveryConstants.DELIVERY_LIMIT) {
             return timeToCustomer;
         } else {

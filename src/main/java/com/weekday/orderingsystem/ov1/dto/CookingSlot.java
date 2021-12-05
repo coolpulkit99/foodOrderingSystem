@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @Data
 public class CookingSlot {
     int orderId;
-    int orderCompletionTime;
+    double orderCompletionTime;
     int slotsUsed;   
 }
