@@ -2,33 +2,45 @@ package com.weekday.orderingsystem.ov1;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weekday.orderingsystem.ov1.Constants.RestaurantConstants;
 import com.weekday.orderingsystem.ov1.dto.Order;
+import com.weekday.orderingsystem.ov1.networkoperations.ResponseParser;
 import com.weekday.orderingsystem.ov1.repositoryservices.Restaurant;
 import com.weekday.orderingsystem.ov1.repositoryservices.RestaurantStandardImpl;
 
 public class Ov1Application {
 
-	public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException {
-		ObjectMapper objectMapper = new ObjectMapper();
-		Order[] orders = objectMapper.readValue(new File("src/main/resources/data.json"), Order[].class);
-		// System.out.print(orders);
+	public static void main(String[] args){
+		Order[] orders = ResponseParser.convertJsonToOrders(args[0]);		
 		Restaurant restaurant=new RestaurantStandardImpl(RestaurantConstants.MAX_SLOTS);
+		List<String> outputs = calculateOrderQueueTimes(orders, restaurant);
+		for(String output: outputs){
+			System.out.println(output);
+		}
+	}
+
+	public static List<String> calculateOrderQueueTimes(Order[] orders, Restaurant restaurant){
+		List<String> preprationTimeMessages= new ArrayList<>();
+		DecimalFormat df=Utils.getDecimalFormatter();
 		for(Order order:orders){
 			double timeToCustomer = restaurant.takeOrder(order);
 			if(timeToCustomer==-1){
-				System.out.println(order.getOrderId()+" Denied");
+				preprationTimeMessages.add("Order "+order.getOrderId()+" is denied because the restaurant cannot accommodate it.");
 			} else {
-				System.out.println(order.getOrderId() + " " + timeToCustomer);
+				preprationTimeMessages.add("Order "+ order.getOrderId() + " will get delivered in " + df.format(timeToCustomer)+" minutes");
 			}
 
 		}
-
-
+		return preprationTimeMessages;
 	}
 
 }

@@ -1,6 +1,8 @@
 package com.weekday.orderingsystem.ov1.repositoryservices;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.PriorityQueue;
 
 import com.weekday.orderingsystem.ov1.dto.CookingSlot;
@@ -13,17 +15,15 @@ public class RestaurantStandardImpl implements Restaurant {
     int maxSlots;
     double restaurantTimeOffest;
     int remainingSlots;
-    char currentbiggestMeal;
     PriorityQueue<CookingSlot> existingOrders;
 
     public RestaurantStandardImpl(int maxSlots) {
         this.maxSlots = maxSlots;
         this.restaurantTimeOffest = 0;
         this.remainingSlots = maxSlots;
-        this.currentbiggestMeal = ' ';
+        // min heap to get order sorting by min order delivery time
         this.existingOrders = new PriorityQueue<>(
             (x, y) -> Double.compare(x.getOrderCompletionTime(), y.getOrderCompletionTime()));
-   
     }
 
     @Override
@@ -59,42 +59,44 @@ public class RestaurantStandardImpl implements Restaurant {
     public double takeOrder(Order order) {
         int slotsRequired = slotsRequired(order);
 
+        // check if restaurant can accomodate order at once
         if (slotsRequired > this.maxSlots) {
             return -1;
         }
 
-        if (slotsRequired <= this.remainingSlots) {
-            
-            // for (Character c : order.getMeals()) {
-            //     this.remainingSlots -= RestaurantConstants.MEAL_SLOT_REQUIRED.get(c);
-                
-            //     if (RestaurantConstants.MEAL_TIME_REQUIRED
-            //             .getOrDefault(this.currentbiggestMeal,0) < RestaurantConstants.MEAL_TIME_REQUIRED.get(c)) {
-            //         this.currentbiggestMeal = c;
-            //     }
-            // }
-
-        } else {
-            while(this.remainingSlots<slotsRequired){
+        List<CookingSlot> removedOrders=new ArrayList<>(); 
+        double restaurantTimeOffestLocal=this.restaurantTimeOffest;
+        int remainingSlotsLocal=this.remainingSlots;
+        // check for empty slots and update slots and time if no empty slots 
+        if (slotsRequired > remainingSlotsLocal) {
+            while(remainingSlotsLocal<slotsRequired){
                 CookingSlot lastFastestOrder = existingOrders.remove();
-                remainingSlots+= lastFastestOrder.getSlotsUsed();
-                this.restaurantTimeOffest = lastFastestOrder.getOrderCompletionTime();
+                removedOrders.add(lastFastestOrder);
+                remainingSlotsLocal+= lastFastestOrder.getSlotsUsed();
+                restaurantTimeOffestLocal = lastFastestOrder.getOrderCompletionTime();
             }
-
-            // this.restaurantTimeOffest = RestaurantConstants.MEAL_TIME_REQUIRED.get(this.currentbiggestMeal);
-            // this.remainingSlots = this.maxSlots;
-            // this.currentbiggestMeal = ' ';
         }
-        double timeToCustomer = calculateFulfillmentTime(order) + this.restaurantTimeOffest;
-        CookingSlot currentOrder=new CookingSlot(order.getOrderId(),timeToCustomer,slotsRequired);
-        this.existingOrders.add(currentOrder);
-        this.remainingSlots -= slotsRequired;
-
+ 
+        double timeToCustomer = calculateFulfillmentTime(order) + restaurantTimeOffestLocal;
+        
         if (timeToCustomer <= DeliveryConstants.DELIVERY_LIMIT) {
+            // add order to order heap and update restaurant state from local states
+            CookingSlot currentOrder=new CookingSlot(order.getOrderId(),timeToCustomer,slotsRequired);
+            remainingSlotsLocal -= slotsRequired;
+            this.existingOrders.add(currentOrder);
+            this.remainingSlots=remainingSlotsLocal;
+            this.restaurantTimeOffest=restaurantTimeOffestLocal;
             return timeToCustomer;
         } else {
+            // in case order is denied update restaurant state to older one
+            for(CookingSlot removedOrder : removedOrders){
+                this.existingOrders.add(removedOrder);
+            }
             return -1;
         }
+        
+
+        
 
     }
 
