@@ -4,7 +4,7 @@
 -  <code>CookingSlot</code> : DTO(Data Transfer Object) class meant for data related to restaurant fullfilment requirements.
 -  <code>Order</code> : DTO(Data Transfer Object) class meant for parsing json order data.
 - <code>ResponseParser</code> : Class for parsing json responses from network requests or files.
-- <code>Restaurant</code> : Interface to implement Factory pattern for Restaurant related classes.
+- <code>Restaurant</code> : Interface to implement <code>Factory pattern</code> for Restaurant related classes.
 - <code>RestaurantStandardImpl</code> : Standard implementation of a Restaurant interface which uses standard Restaurant parameters
 - <code>DeliveryConstants</code> : Delivery related constants.
 - <code>RestaurantConstants</code> : Restaurant specific constants.
